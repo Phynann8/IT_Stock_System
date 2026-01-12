@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Asset & Inventory Management System</title>
+
+    <!-- FIREBASE SCRIPTS -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+    <!-- EXTERNAL STYLESHEET -->
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+</head>
+
+<body>
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- SETUP LOADING PAGE -->
+    <div id="setupPage" class="auth-container active">
+        <div class="auth-box">
+            <div class="auth-title">⚙️ Initializing System</div>
+            <div class="setup-spinner"></div>
+            <p style="text-align: center; color: var(--color-slate-500);">Setting up database and default data...</p>
+        </div>
+    </div>
+
+    <!-- LOGIN PAGE -->
+    <div id="loginPage" class="auth-container">
+        <div class="auth-box">
+            <div class="auth-title">🔐 Login</div>
+            <div class="error-message" id="loginError"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" id="loginEmail" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div class="auth-toggle">
+                    Don't have an account? <a id="showSignupLink">Sign Up</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SIGNUP PAGE -->
+    <div id="signupPage" class="auth-container">
+        <div class="auth-box">
+            <div class="auth-title">📝 Sign Up</div>
+            <div class="error-message" id="signupError"></div>
+            <form id="signupForm">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" class="form-input" id="signupName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email Address</label>
+                    <input type="email" class="form-input" id="signupEmail" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="signupPassword" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Account</button>
+                <div class="auth-toggle">
+                    Already have an account? <a id="showLoginLink">Login</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp" class="container">
+        <!-- SIDEBAR NAVIGATION -->
+        <div class="sidebar">
+            <div class="sidebar-header">📦 Asset System</div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="showPage('dashboard')">📊 Dashboard</button>
+                <button class="nav-item" onclick="showPage('assets')">💻 Assets</button>
+                <button class="nav-item" onclick="showPage('categories')">📂 Categories</button>
+                <button class="nav-item" onclick="showPage('locations')">📍 Locations</button>
+                <button class="nav-item" id="reportsNav" onclick="showPage('reports')">📋 Reports</button>
+                <button class="nav-item" id="usersNav" onclick="showPage('users')">👥 Users</button>
+                <button class="nav-item" id="permissionsNav" onclick="showPage('permissions')">🔐 Permissions</button>
+                <button class="nav-item" onclick="showPage('settings')">⚙️ Settings</button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="main-content">
+            <!-- TOP BAR -->
+            <div class="top-bar">
+                <div class="top-bar-title" id="pageTitle">Dashboard</div>
+                <div style="margin-left: auto; margin-right: 20px;">
+                    <select id="globalCampusFilter" class="filter-select" onchange="handleGlobalCampusChange()">
+                        <option value="">All Campuses</option>
+                        <option value="KB">KB</option>
+                        <option value="CHV">CHV</option>
+                        <option value="NR3">NR3</option>
+                        <option value="KSR">KSR</option>
+                    </select>
+                </div>
+                <div class="user-info">
+                    <span id="userEmail"></span>
+                    <span id="userRole"></span>
+                    <div class="user-avatar" id="userAvatar">--</div>
+                </div>
+            </div>
+
+            <!-- PAGE CONTENT -->
+            <div class="page-content">
+                <!-- DASHBOARD PAGE -->
+                <div id="dashboard" class="dashboard active">
+                    <div class="page-title">Asset Overview</div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Assets</div>
+                            <div class="stat-value" id="totalAssets">0</div>
+                        </div>
+                        <div class="stat-card green">
+                            <div class="stat-label">In Use</div>
+                            <div class="stat-value" id="inUseCount">0</div>
+                        </div>
+                        <div class="stat-card orange">
+                            <div class="stat-label">Broken</div>
+                            <div class="stat-value" id="brokenCount">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">In Stock</div>
+                            <div class="stat-value" id="stockCount">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ASSETS PAGE -->
+                <div id="assets" class="dashboard">
+                    <div class="page-title">Asset Inventory</div>
+                    <div class="filters">
+                        <input type="text" class="filter-input" id="searchAssets" placeholder="Search..."
+                            onkeyup="filterAssets()">
+                        <select class="filter-select" id="categoryFilter" onchange="filterAssets()">
+                            <option value="">All Categories</option>
+                        </select>
+                        <select class="filter-select" id="conditionFilter" onchange="filterAssets()">
+                            <option value="">All Conditions</option>
+                            <option value="In Use">In Use</option>
+                            <option value="Stock">Stock</option>
+                            <option value="Broken">Broken</option>
+                            <option value="Old">Old</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="openAddAssetModal()" id="addAssetBtn"
+                            style="display:none;">+ Add Asset</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Asset Name</th>
+                                    <th>Category</th>
+                                    <th>Brand</th>
+                                    <th>Condition</th>
+                                    <th>Quantity</th>
+                                    <th>Location</th>
+                                    <th>Assigned To</th>
+                                    <th id="actionsHeader" style="display:none;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetRows">
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">Loading assets...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CATEGORIES PAGE -->
+                <div id="categories" class="dashboard">
+                    <div class="page-title">Asset Categories</div>
+                    <button class="btn btn-primary" onclick="openAddCategoryModal()" id="addCategoryBtn"
+                        style="display:none; margin-bottom: var(--space-16);">+ Add Category</button>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Category Name</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th id="catActionsHeader" style="display:none;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoryRows">
+                                <tr>
+                                    <td colspan="4" style="text-align: center;">Loading categories...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- LOCATIONS PAGE -->
+                <div id="locations" class="dashboard">
+                    <div class="page-title">Location Hierarchy</div>
+                    <button class="btn btn-primary" onclick="openAddLocationModal()" id="addLocationBtn"
+                        style="display:none; margin-bottom: var(--space-16);">+ Add Location</button>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Campus</th>
+                                    <th>Building</th>
+                                    <th>Floor</th>
+                                    <th>Room</th>
+                                    <th>Assets</th>
+                                    <th id="locActionsHeader" style="display:none;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="locationRows">
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">Loading locations...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- REPORTS PAGE -->
+                <div id="reports" class="dashboard">
+                    <div class="page-title">Reports & Export</div>
+                    <div class="stats-grid" style="margin-bottom: var(--space-24);">
+                        <button class="btn btn-primary" onclick="exportAllAssets()"
+                            style="width: 100%; padding: var(--space-12);">📥 Export All Assets</button>
+                        <button class="btn btn-primary" onclick="exportBrokenAssets()"
+                            style="width: 100%; padding: var(--space-12);">📥 Export Broken Items</button>
+                        <button class="btn btn-primary" onclick="exportByFloor()"
+                            style="width: 100%; padding: var(--space-12);">📥 Export By Floor</button>
+                    </div>
+                </div>
+
+                <!-- USERS PAGE -->
+                <div id="users" class="dashboard">
+                    <div class="page-title">User Management</div>
+                    <button class="btn btn-primary" onclick="openAddUserModal()" id="addUserBtn"
+                        style="display:none; margin-bottom: var(--space-16);">+ Add User</button>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Email</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Campuses</th>
+                                    <th>Status</th>
+                                    <th id="userActionsHeader" style="display:none;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userRows">
+                                <tr>
+                                    <td colspan="5" style="text-align: center;">Loading users...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PERMISSIONS PAGE -->
+                <div id="permissions" class="dashboard">
+                    <div class="page-title">Role Permissions</div>
+                    <div id="permissionsContent">Loading permissions...</div>
+                </div>
+
+                <!-- SETTINGS PAGE -->
+                <div id="settings" class="dashboard">
+                    <div class="page-title">System Settings</div>
+
+                    <!-- Appearance Settings -->
+                    <div
+                        style="background: var(--color-white); padding: var(--space-20); border-radius: var(--radius-lg); margin-bottom: var(--space-24); max-width: 600px;">
+                        <h3
+                            style="margin-bottom: var(--space-16); display: flex; align-items: center; gap: var(--space-8);">
+                            🎨 Appearance
+                        </h3>
+
+                        <!-- Dark/Light Mode Toggle -->
+                        <div style="margin-bottom: var(--space-20);">
+                            <label class="form-label" style="margin-bottom: var(--space-12);">Theme Mode</label>
+                            <div style="display: flex; gap: var(--space-8); flex-wrap: wrap;">
+                                <button class="theme-mode-btn active" data-mode="light"
+                                    onclick="setColorScheme('light')" style="flex: 1; min-width: 120px;">
+                                    ☀️ Light
+                                </button>
+                                <button class="theme-mode-btn" data-mode="dark" onclick="setColorScheme('dark')"
+                                    style="flex: 1; min-width: 120px;">
+                                    🌙 Dark
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Color Theme Selector -->
+                        <div>
+                            <label class="form-label" style="margin-bottom: var(--space-12);">Color Theme</label>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: var(--space-12);">
+                                <button class="color-theme-btn active" data-theme="teal"
+                                    onclick="setColorTheme('teal')">
+                                    <span class="color-preview" style="background: #21808D;"></span>
+                                    <span class="color-label">Teal</span>
+                                </button>
+                                <button class="color-theme-btn" data-theme="blue" onclick="setColorTheme('blue')">
+                                    <span class="color-preview" style="background: #2563EB;"></span>
+                                    <span class="color-label">Blue</span>
+                                </button>
+                                <button class="color-theme-btn" data-theme="purple" onclick="setColorTheme('purple')">
+                                    <span class="color-preview" style="background: #9333EA;"></span>
+                                    <span class="color-label">Purple</span>
+                                </button>
+                                <button class="color-theme-btn" data-theme="green" onclick="setColorTheme('green')">
+                                    <span class="color-preview" style="background: #059669;"></span>
+                                    <span class="color-label">Green</span>
+                                </button>
+                                <button class="color-theme-btn" data-theme="orange" onclick="setColorTheme('orange')">
+                                    <span class="color-preview" style="background: #EA580C;"></span>
+                                    <span class="color-label">Orange</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Info -->
+                    <div
+                        style="background: var(--color-white); padding: var(--space-16); border-radius: var(--radius-lg); max-width: 600px;">
+                        <h3 style="margin-bottom: var(--space-12);">System Info</h3>
+                        <div style="font-size: 14px; color: var(--color-slate-500); line-height: 2;">
+                            <div>Version: 1.0 (MVP)</div>
+                            <div>Database: Firebase Firestore</div>
+                            <div>Auth: Firebase Authentication</div>
+                            <div>Your Role: <span id="yourRole">--</span></div>
+                            <div>Your Email: <span id="yourEmail">--</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- ADD ASSET MODAL -->
+    <div id="addAssetModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add New Asset</span>
+                <button class="close-btn" onclick="closeModal('addAssetModal')">&times;</button>
+            </div>
+            <form id="addAssetForm" onsubmit="handleAssetSubmit(event)">
+                <input type="hidden" id="assetId">
+                <div class="form-group">
+                    <label class="form-label">Asset Name *</label>
+                    <input type="text" class="form-input" id="assetName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Category *</label>
+                    <select class="filter-select" id="assetCategory" style="width: 100%;" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Brand</label>
+                    <input type="text" class="form-input" id="assetBrand">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Model</label>
+                    <input type="text" class="form-input" id="assetModel">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Condition *</label>
+                    <select class="filter-select" id="assetCondition" style="width: 100%;" required>
+                        <option value="In Use">In Use</option>
+                        <option value="Stock">Stock</option>
+                        <option value="Broken">Broken</option>
+                        <option value="Old">Old</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Quantity *</label>
+                    <input type="number" class="form-input" id="assetQuantity" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Location Details *</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <select class="filter-select" id="assetCampus" required onchange="updateAssetBuildings()">
+                            <option value="">Select Campus</option>
+                            <option value="KB">KB</option>
+                            <option value="CHV">CHV</option>
+                            <option value="NR3">NR3</option>
+                            <option value="KSR">KSR</option>
+                        </select>
+                        <select class="filter-select" id="assetBuilding" required onchange="updateAssetFloors()">
+                            <option value="">Select Building</option>
+                        </select>
+                        <select class="filter-select" id="assetFloor" required onchange="updateAssetRooms()">
+                            <option value="">Select Floor</option>
+                        </select>
+                        <select class="filter-select" id="assetRoom" required>
+                            <option value="">Select Room</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assigned To</label>
+                    <input type="text" class="form-input" id="assetAssignee">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-textarea" id="assetNotes"></textarea>
+                </div>
+                <div style="display: flex; gap: var(--space-12);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Add Asset</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;"
+                        onclick="closeModal('addAssetModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD CATEGORY MODAL -->
+    <div id="addCategoryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add Category</span>
+                <button class="close-btn" onclick="closeModal('addCategoryModal')">&times;</button>
+            </div>
+            <form id="addCategoryForm" onsubmit="handleCategorySubmit(event)">
+                <input type="hidden" id="categoryId">
+                <div class="form-group">
+                    <label class="form-label">Category Name *</label>
+                    <input type="text" class="form-input" id="categoryName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="categoryDesc"></textarea>
+                </div>
+                <div style="display: flex; gap: var(--space-12);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Add Category</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;"
+                        onclick="closeModal('addCategoryModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD LOCATION MODAL -->
+    <div id="addLocationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add Location</span>
+                <button class="close-btn" onclick="closeModal('addLocationModal')">&times;</button>
+            </div>
+            <form id="addLocationForm" onsubmit="handleLocationSubmit(event)">
+                <input type="hidden" id="locationId">
+                <div class="form-group">
+                    <label class="form-label">Campus *</label>
+                    <select class="filter-select" id="locationCampus" style="width: 100%;" required>
+                        <option value="KB">KB</option>
+                        <option value="CHV">CHV</option>
+                        <option value="NR3">NR3</option>
+                        <option value="KSR">KSR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Building *</label>
+                    <input type="text" class="form-input" id="locationBuilding" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Floor *</label>
+                    <select class="filter-select" id="locationFloor" style="width: 100%;" required>
+                        <option value="GF">Ground Floor</option>
+                        <option value="1F">1st Floor</option>
+                        <option value="2F">2nd Floor</option>
+                        <option value="3F">3rd Floor</option>
+                        <option value="4F">4th Floor</option>
+                        <option value="5F">5th Floor</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Room *</label>
+                    <input type="text" class="form-input" id="locationRoom" required>
+                </div>
+                <div style="display: flex; gap: var(--space-12);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Add Location</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;"
+                        onclick="closeModal('addLocationModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD USER MODAL -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Add User</span>
+                <button class="close-btn" onclick="closeModal('addUserModal')">&times;</button>
+            </div>
+            <form id="addUserForm" onsubmit="handleUserSubmit(event)">
+                <input type="hidden" id="userId">
+                <div class="form-group">
+                    <label class="form-label">Email *</label>
+                    <input type="email" class="form-input" id="newUserEmail" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Name *</label>
+                    <input type="text" class="form-input" id="newUserName" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password *</label>
+                    <input type="password" class="form-input" id="newUserPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role *</label>
+                    <select class="filter-select" id="newUserRole" style="width: 100%;" required>
+                        <option value="IT Staff">IT Staff</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Viewer">Viewer</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Allowed Campuses *</label>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <label><input type="checkbox" name="campusAccess" value="KB"> KB</label>
+                        <label><input type="checkbox" name="campusAccess" value="CHV"> CHV</label>
+                        <label><input type="checkbox" name="campusAccess" value="NR3"> NR3</label>
+                        <label><input type="checkbox" name="campusAccess" value="KSR"> KSR</label>
+                    </div>
+                </div>
+                <div style="display: flex; gap: var(--space-12);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Add User</button>
+                    <button type="button" class="btn btn-secondary" style="flex: 1;"
+                        onclick="closeModal('addUserModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EXTERNAL JAVASCRIPT -->
+    <script src="script.js"></script>
+</body>
+
+</html>
