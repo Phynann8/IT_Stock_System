@@ -2,8 +2,10 @@
   /* Primitive Color Tokens */
   --color-white: rgba(255, 255, 255, 1);
   --color-black: rgba(0, 0, 0, 1);
-  --color-cream-50: rgba(252, 252, 249, 1);
-  --color-cream-100: rgba(255, 255, 253, 1);
+  --color-cream-50: rgba(248, 249, 250, 1);
+  /* Updated to Light Gray for School Look */
+  --color-cream-100: rgba(255, 255, 255, 1);
+  /* Updated to White */
   --color-gray-200: rgba(245, 245, 245, 1);
   --color-gray-300: rgba(167, 169, 169, 1);
   --color-gray-400: rgba(119, 124, 124, 1);
@@ -901,9 +903,9 @@ select.form-control {
 
 body {
   font-family: var(--font-family-base);
-  background: linear-gradient(-45deg, #EE7752, #E73C7E, #23A6D5, #23D5AB);
-  background-size: 400% 400%;
-  animation: gradientBG 15s ease infinite;
+  font-family: var(--font-family-base);
+  background-color: var(--color-background);
+  /* background: linear-gradient... removed for professional look */
   color: var(--color-text);
   line-height: var(--line-height-normal);
   font-size: var(--font-size-base);
@@ -1966,6 +1968,7 @@ tr:last-child td {
     font-size: var(--font-size-xs);
   }
 }
+
 /* ==========================================
    THEME SWITCHER STYLES
    ========================================== */
@@ -2045,11 +2048,12 @@ tr:last-child td {
    ========================================== */
 
 /* Blue Theme */
+/* Blue Theme (School Style) */
 [data-color-theme="blue"] {
-  --color-primary: #2563EB;
-  --color-primary-hover: #1D4ED8;
-  --color-primary-active: #1E40AF;
-  --color-teal-500-rgb: 37, 99, 235;
+  --color-primary: #003366;
+  --color-primary-hover: #002244;
+  --color-primary-active: #001122;
+  --color-teal-500-rgb: 0, 51, 102;
 }
 
 [data-color-theme="blue"][data-color-scheme="dark"] {
@@ -2102,4 +2106,17 @@ tr:last-child td {
   --color-primary-hover: #F97316;
   --color-primary-active: #EA580C;
   --color-teal-300-rgb: 251, 146, 60;
+}
+
+/* Fixes for Dark Mode Consistency */
+[data-color-scheme="dark"] .sidebar {
+  background-color: var(--color-surface) !important;
+  border-right: 1px solid var(--color-border);
+}
+
+[data-color-scheme="dark"] .form-input,
+[data-color-scheme="dark"] .filter-select {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-color: var(--color-border);
+  color: var(--color-text);
 }
