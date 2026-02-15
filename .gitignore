@@ -36,3 +36,5 @@ firebaserc
 *.tmp
 *.temp
 .cache/
+
+config.js

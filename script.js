@@ -2,15 +2,8 @@
    FIREBASE CONFIGURATION & INITIALIZATION
    ========================================== */
 
-const firebaseConfig = {
-    apiKey: "***REMOVED***",
-    authDomain: "it-asset-system-2091b.firebaseapp.com",
-    projectId: "it-asset-system-2091b",
-    storageBucket: "it-asset-system-2091b.firebasestorage.app",
-    messagingSenderId: "788162777362",
-    appId: "1:788162777362:web:29481f4c345dae382063cb",
-    measurementId: "G-VNHV6QEDWP"
-};
+const firebaseConfig = window.appConfig.firebase;
+
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -140,11 +133,11 @@ function initializeTheme() {
     // Get saved preferences from localStorage, or use defaults
     const savedScheme = localStorage.getItem('colorScheme') || 'light';
     const savedTheme = localStorage.getItem('colorTheme') || 'teal';
-    
+
     // Apply the saved theme
     document.documentElement.setAttribute('data-color-scheme', savedScheme);
     document.documentElement.setAttribute('data-color-theme', savedTheme);
-    
+
     // Update button states when settings page loads
     updateThemeButtonStates(savedScheme, savedTheme);
 }
@@ -174,7 +167,7 @@ function updateThemeButtonStates(scheme, theme) {
             }
         });
     }
-    
+
     // Update color theme buttons
     if (theme) {
         document.querySelectorAll('.color-theme-btn').forEach(btn => {
